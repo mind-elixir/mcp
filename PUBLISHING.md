@@ -121,6 +121,8 @@ ResourcePattern: fmt.Sprintf("io.github.%s/*", claims.RepositoryOwner)
 
 ### 2.1 一次性准备
 
+> ⚠️ **不要 `npx mcp-publisher`**。npm 上有个**同名抢注包**（维护者 `gottivartanian`，实为浏览器自动化发布工具），运行后会以 stdio 模式启动并等待 JSON-RPC 输入，表现为"卡住不动"。官方 CLI 是 Go 编译的二进制，**不在 npm 上**，只能通过 Homebrew 或 GitHub Releases 安装。
+
 ```bash
 brew install mcp-publisher                 # 或从 GitHub Releases 下载二进制
 mcp-publisher --help
