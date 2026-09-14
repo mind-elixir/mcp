@@ -1,0 +1,93 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.SSShooter/mind-elixir-mcp",
+  "title": "Mind Elixir",
+  "description": "Create, edit, and organize mind maps in the Mind Elixir Desktop app from any MCP client.",
+  "version": "0.1.5",
+  "websiteUrl": "https://app.mind-elixir.com",
+  "repository": {
+    "url": "https://github.com/SSShooter/mind-elixir-desktop",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@mind-elixir/mcp",
+      "version": "0.1.5",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "MIND_ELIXIR_MCP_URL",
+          "description": "Target URL of the Mind Elixir Desktop MCP endpoint. Defaults to http://127.0.0.1:6595/mcp",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "categories": [
+        "productivity",
+        "note-taking",
+        "knowledge-management",
+        "mind-maps"
+      ],
+      "keywords": [
+        "mind map",
+        "mindmap",
+        "mind mapping",
+        "brainstorming",
+        "outline",
+        "note-taking",
+        "knowledge base",
+        "diagram",
+        "desktop",
+        "tauri"
+      ],
+      "longDescription": "A local bridge to the MCP server built into Mind Elixir Desktop. It exposes seven tools that let an AI assistant create a mind map from scratch, read the map that is currently open, rename and add nodes, attach summary nodes over a range of siblings, and draw labelled arrows between nodes. All processing stays on the user's machine: the desktop app hosts the endpoint on 127.0.0.1:6595 and the bridge only forwards JSON-RPC over loopback.",
+      "docs": "https://app.mind-elixir.com/blog/use-mcp",
+      "contact": "https://github.com/SSShooter",
+      "requiresDesktopApp": true,
+      "desktopAppUrl": "https://app.mind-elixir.com",
+      "io.mind-elixir": {
+        "defaultEndpoint": "http://127.0.0.1:6595/mcp",
+        "repositorySubfolder": "packages/mcp",
+        "tools": [
+          {
+            "name": "new_mindmap",
+            "description": "Create a new blank mind map and navigate the app to the editor."
+          },
+          {
+            "name": "get_all_nodes",
+            "description": "Return the full node tree (topics, IDs, hierarchy) of the current mind map."
+          },
+          {
+            "name": "generate_mindmap",
+            "description": "Replace the current mind map with one built from a JSON structure."
+          },
+          {
+            "name": "edit_topic",
+            "description": "Change the topic text of an existing node, keeping its position and links."
+          },
+          {
+            "name": "add_child",
+            "description": "Add a child node under an existing parent; returns the generated node ID."
+          },
+          {
+            "name": "add_node_summary",
+            "description": "Attach a summary node that consolidates a range of sibling child nodes."
+          },
+          {
+            "name": "add_arrow",
+            "description": "Draw a labelled connection arrow between two nodes to show a relationship."
+          }
+        ]
+      }
+    }
+  }
+}
