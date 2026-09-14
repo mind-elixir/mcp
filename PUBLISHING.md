@@ -166,6 +166,7 @@ curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.min
 | --- | --- |
 | `Registry validation failed for package` | npm 上那个版本没有 `mcpName`，或值与 `server.json` 的 `name` 不一致。 |
 | `You do not have permission to publish this server` | 命名空间不匹配。确认 `io.github.mind-elixir/mcp` 拼写；若登录账号不是组织 Owner，或 device flow 时没批准组织访问，也会落到这里。 |
+| `You do not have permission to publish this server`（提示只有个人命名空间） | **组织成员身份是隐藏的**。Registry 登录时用 token 查 GitHub `/user/memberships/orgs`，只认**公开**的组织成员。到 <https://github.com/orgs/mind-elixir/people> 把自己的 Visibility 改为 Public（或 `gh api -X PUT /orgs/mind-elixir/public_members/<你的用户名>`），**然后必须重新 `login`**——权限在签发 JWT 时就固定了，改完不重新登录不会生效。若改公开后仍不行，检查组织的 OAuth App access restrictions（<https://github.com/organizations/mind-elixir/settings/oauth_app_policy>）是否批准了 `MCP Publisher`。 |
 | `Invalid or expired Registry JWT token` | token 过期，重新执行 `mcp-publisher login github`。 |
 | 只能发个人命名空间、组织被忽略 | 组织开了 OAuth App access restrictions 未批准，或 PAT 缺 `read:org` / Members 读取权限。 |
 
