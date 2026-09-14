@@ -6,19 +6,17 @@
 
 ## 0. 现状盘点
 
-截至 2026-09-14：
+截至 2026-09-14（已发布）：
 
 | 项目 | 状态 |
 | --- | --- |
 | 代码仓库 | `github.com/mind-elixir/mcp`（**公开**，默认分支 `main`） |
-| npm 已发布版本 | `0.1.0`（09-10）、`0.1.1`（09-10）、`0.1.2`（09-10）、`0.1.4`（09-14） |
-| npm `latest` tag | 指向 `0.1.4` |
-| `mcpName` 字段 | **已发布的 0.1.2 与 0.1.4 实测都没有**，因此无法通过官方 Registry 的所有权校验 |
-| `server.json` | 仓库根目录 |
-| Registry 名称 | `io.github.mind-elixir/mcp` |
-| 图标 | `app-icon.png`（1024×1024），已在 `server.json` 声明 |
+| npm `latest` | `0.1.5`（含 `mcpName: io.github.mind-elixir/mcp`） |
+| 官方 Registry | **已收录** `io.github.mind-elixir/mcp` v0.1.5 |
+| `server.json` | 仓库根目录；Registry 侧发布走 `.github/workflows/publish-registry.yml`（OIDC） |
+| 图标 | `app-icon.png`（1024×1024），已在 `server.json` 声明且 raw 链接可达 |
 
-> 结论：**必须发一个新版本（`0.1.5`）**。npm 不允许修改已发布版本的 `package.json`，而官方 Registry 校验的是 npm 上那个版本的 `mcpName` 字段。
+> 组织成员身份需保持 **Public**：本地 device flow 登录（`mcp-publisher login github`）只认公开的组织成员，隐藏时只会拿到个人命名空间 `io.github.SSShooter/*`。Actions OIDC 路径不受此限制。
 
 ### 0.1 独立成仓后补齐的三件事
 
@@ -128,37 +126,39 @@ brew install mcp-publisher                 # 或从 GitHub Releases 下载二进
 mcp-publisher --help
 ```
 
-### 2.2 发布
+### 2.2 发布（实战验证过的完整流程，2026-09-14）
+
+> 前置：npm 上必须有当前版本且 `mcpName` 正确——Registry 会回查 npm 上该版本的存在性与 `mcpName == server.json.name`。
 
 ```bash
-# 1) 构建并确认产物
+# 0) 构建
 pnpm install
 pnpm build
 
-# 2) 发布到 npm —— 必须先于 Registry：
-#    Registry 会去 npm 校验「这个版本存在」且「该版本的 mcpName 等于 server.json 的 name」
+# 1) 发布到 npm —— 必须先于 Registry
 npm publish --access public
-npm view @mind-elixir/mcp dist-tags         # 确认 latest 指向 0.1.5
+npm view @mind-elixir/mcp dist-tags         # 确认 latest 指向新版本
 
-# 3) 登录（device flow，浏览器里确认；注意批准组织访问）
+# 2) 发布到 Registry —— 二选一
+
+#    路径 A（推荐）：GitHub Actions OIDC，无凭据、不依赖组织成员身份
+#    到仓库 Actions 页手动运行 "Publish to MCP Registry"（workflow_dispatch）
+gh workflow run publish-registry.yml --ref main
+
+#    路径 B：本地 device flow
+#    要求：你在 mind-elixir 的成员身份为 Public（Registry 登录时只认公开成员），
+#    且组织未阻止该 OAuth App。权限在 login 签发 JWT 时固化，改完 GitHub 设置必须重新 login。
 mcp-publisher login github
-
-# 4) 先本地校验，再发布
 mcp-publisher validate
 mcp-publisher publish
 
-# 5) 验证
-curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.mind-elixir/mcp"
+# 3) 验证收录（API 偶发空响应，重试即可）
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.mind-elixir"
 ```
 
-> `publish` 从 `login` 保存的 token 里读取 registry 地址，**不接受 `--registry` 参数**——传了会被当成 `server.json` 的路径解析。
-
-期望输出：
-
-```text
-✓ Successfully published
-✓ Server io.github.mind-elixir/mcp version 0.1.5
-```
+> - 同一版本重复发布 Registry 会报 `400 cannot publish duplicate version`——这不是权限问题，说明该版本已在线上。
+> - `publish` 从 `login` 保存的 token 里读取 registry 地址，**不接受 `--registry` 参数**——传了会被当成 `server.json` 的路径解析。
+> - 路径 A 的权限来自 OIDC token 的 `repository_owner`（= `mind-elixir`），组织成员公开性、OAuth App 批准与否都不影响。
 
 ### 2.3 常见报错对照
 
@@ -236,8 +236,12 @@ src/index.ts                 → const VERSION = '0.1.6'
 server.json                  → "version": "0.1.6"
 server.json                  → "packages"[0].version: "0.1.6"
 
-# 4) 构建 + 校验 + 发布
-pnpm build && mcp-publisher validate && npm publish --access public && mcp-publisher publish
+# 4) 构建 + 校验 + 发布（npm 先行，Registry 走 Actions 工作流）
+pnpm build && mcp-publisher validate && npm publish --access public
+gh workflow run publish-registry.yml --ref main   # Registry 侧
+
+# 5) 验证收录
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.mind-elixir"
 ```
 
 另外记得补 `CHANGELOG.md`。
