@@ -1,7 +1,7 @@
 # Mind Elixir MCP Server
 
 [![npm version](https://img.shields.io/npm/v/@mind-elixir/mcp.svg)](https://www.npmjs.com/package/@mind-elixir/mcp)
-[![license](https://img.shields.io/npm/l/@mind-elixir/mcp.svg)](https://github.com/SSShooter/mind-elixir-desktop/blob/master/LICENSE)
+[![license](https://img.shields.io/npm/l/@mind-elixir/mcp.svg)](https://github.com/mind-elixir/mcp/blob/main/LICENSE)
 
 **Let AI assistants build and edit real mind maps in [Mind Elixir Desktop](https://app.mind-elixir.com).**
 
@@ -9,7 +9,7 @@ This is the **stdio ↔ HTTP bridge** that connects stdio-only MCP clients — C
 
 > **Requires Mind Elixir Desktop to be installed and running.** This server is a local controller for the desktop app, not a standalone cloud service. The bridge forwards tool calls to `http://127.0.0.1:6595/mcp` and streams the results back.
 
-- Registry name: `io.github.SSShooter/mind-elixir-mcp`
+- Registry name: `io.github.mind-elixir/mcp`
 - npm package: [`@mind-elixir/mcp`](https://www.npmjs.com/package/@mind-elixir/mcp)
 - Setup guide: <https://app.mind-elixir.com/blog/use-mcp>
 
@@ -398,8 +398,9 @@ Transport selection in `auto` mode: if the target URL path ends with `/mcp`, Str
 
 ## Development
 
+Requires Node.js 18+ and pnpm 11+ (the `allowBuilds` entry in `pnpm-workspace.yaml` depends on it).
+
 ```bash
-cd packages/mcp
 pnpm install
 pnpm build     # tsup -> dist/index.js
 pnpm dev       # tsup --watch
@@ -411,4 +412,4 @@ The build emits a single bundled ESM file with a `#!/usr/bin/env node` shebang; 
 
 ## License
 
-MIT © [SSShooter](https://github.com/SSShooter)
+MIT © [Mind Elixir](https://github.com/mind-elixir)

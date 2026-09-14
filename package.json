@@ -1,7 +1,7 @@
 {
   "name": "@mind-elixir/mcp",
   "version": "0.1.5",
-  "mcpName": "io.github.SSShooter/mind-elixir-mcp",
+  "mcpName": "io.github.mind-elixir/mcp",
   "description": "Model Context Protocol (MCP) stdio-to-HTTP bridge for Mind Elixir Desktop",
   "type": "module",
   "bin": {
@@ -20,12 +20,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SSShooter/mind-elixir-desktop.git",
-    "directory": "packages/mcp"
+    "url": "git+https://github.com/mind-elixir/mcp.git"
   },
   "homepage": "https://app.mind-elixir.com",
   "bugs": {
-    "url": "https://github.com/SSShooter/mind-elixir-desktop/issues"
+    "url": "https://github.com/mind-elixir/mcp/issues"
   },
   "scripts": {
     "build": "tsup",
@@ -45,15 +44,17 @@
     "cline",
     "windsurf"
   ],
-  "author": "SSShooter",
+  "author": "Mind Elixir (https://github.com/mind-elixir)",
   "license": "MIT",
   "engines": {
     "node": ">=18"
   },
+  "packageManager": "pnpm@11.25.0",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0"
   },
   "devDependencies": {
+    "@types/node": "^22.14.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3"
   }

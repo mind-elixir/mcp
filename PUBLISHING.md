@@ -1,6 +1,6 @@
 # MCP 商店提交手册
 
-面向 `packages/mcp`（`@mind-elixir/mcp`）的发布与收录操作流程。**本文件不随 npm 包发布**，仅作为仓库内运维文档。
+本仓库（`@mind-elixir/mcp`）的发布与收录操作流程。**本文件不随 npm 包发布**（`package.json` 的 `files` 未包含它），仅作为仓库内运维文档。
 
 ---
 
@@ -10,35 +10,62 @@
 
 | 项目 | 状态 |
 | --- | --- |
+| 代码仓库 | `github.com/mind-elixir/mcp`（**公开**，默认分支 `main`） |
 | npm 已发布版本 | `0.1.0`（09-10）、`0.1.1`（09-10）、`0.1.2`（09-10）、`0.1.4`（09-14） |
 | npm `latest` tag | 指向 `0.1.4` |
 | `mcpName` 字段 | **已发布的 0.1.2 与 0.1.4 实测都没有**，因此无法通过官方 Registry 的所有权校验 |
-| `server.json` | 本次新增于 `packages/mcp/server.json` |
-| 仓库可见性 | `github.com/SSShooter/mind-elixir-desktop` 返回 **404（私有）** |
-| Registry 名称 | `io.github.SSShooter/mind-elixir-mcp` |
+| `server.json` | 仓库根目录 |
+| Registry 名称 | `io.github.mind-elixir/mcp` |
+| 图标 | `app-icon.png`（1024×1024），已在 `server.json` 声明 |
 
 > 结论：**必须发一个新版本（`0.1.5`）**。npm 不允许修改已发布版本的 `package.json`，而官方 Registry 校验的是 npm 上那个版本的 `mcpName` 字段。
 
+### 0.1 独立成仓后补齐的三件事
+
+从 `mind-elixir-desktop` monorepo 的 `packages/mcp` 拆出来时，有三处依赖 monorepo 根配置、拆出来后必须自带：
+
+| 补的东西 | 为什么 |
+| --- | --- |
+| `pnpm-workspace.yaml` 里的 `allowBuilds: { esbuild: true }` | 原先继承根目录的 `allowBuilds`。缺失时 pnpm 会拒绝执行 esbuild 的安装脚本，报 `ERR_PNPM_IGNORED_BUILDS`，进而让 `pnpm build` 因依赖状态检查失败而整体中断。 |
+| `devDependencies` 里的 `@types/node` | 原先由根 `node_modules` 提升提供。缺失时 `tsup` 的 `dts: true` 会报 `TS2580: Cannot find name 'process'`，**ESM 打包能过、DTS 阶段失败**，`pnpm build` 退出码 1。 |
+| `pnpm-lock.yaml` | 独立仓需要自己的锁文件。`packageManager` 固定为 `pnpm@11.25.0`，因为 `allowBuilds` 是 pnpm 11 的配置键。 |
+
+验证方式：全新克隆后 `pnpm install && pnpm build` 必须退出码 0，且 `node dist/index.js --version` 输出 `v0.1.5`。
+
 ---
 
-## 1. 官方 MCP Registry
+## 1. 命名空间：`io.github.mind-elixir/mcp`
 
-地址：<https://registry.modelcontextprotocol.io>　规范：`https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json`
+官方 Registry 的命名空间直接取自 **GitHub 账号**（个人或组织），**与仓库名无关**。
 
-官方 Registry 只托管**元数据**，不托管产物；产物仍然在 npm。它是生态的元数据源头，Glama、PulseMCP、mcp.so、LobeHub 等聚合站大多从这里或从 GitHub 仓库拉取。
+### 1.1 命名规则
 
-### 1.1 为什么必须写 `io.github.SSShooter`（大写 S）
+GitHub 认证方式下，`server.json` 的 `name` 必须形如 `io.github.<账号名>/<server 名>`，且要与 `package.json` 的 `mcpName` **逐字符一致**：
 
-这不是风格问题，写错会直接发布失败。
+```text
+io.github.mind-elixir/mcp
+```
 
-GitHub 登录授权时，Registry 会把你的 GitHub 登录名原样拼成权限前缀：
+GitHub 返回的组织 `login` 就是小写 `mind-elixir`，所以这里没有大小写歧义（对比：个人账号 `SSShooter` 带大写 S，用个人身份发布才需要写 `io.github.SSShooter/...`，且**不能写成小写**）。
+
+### 1.2 硬性前提：必须是组织 Owner
+
+Registry 只把组织命名空间发给该组织的 **Owner**（membership role = `admin`），普通 member 会被拒：
 
 ```go
 // registry/internal/api/handlers/v0/auth/github_at.go
-ResourcePattern: fmt.Sprintf("io.github.%s/*", username)   // username = GitHub 返回的 Login，即 "SSShooter"
+// Get the organizations the user administers. Org namespaces are only granted
+// to org Owners (membership role "admin"), not to ordinary members.
+...
+if m.State == githubMembershipStateActive && m.Role == githubOrgRoleAdmin {
+    adminOrgs = append(adminOrgs, m.Organization)
+}
+
+// 之后把每个受管组织拼成权限前缀
+ResourcePattern: fmt.Sprintf("io.github.%s/*", org.Login)
 ```
 
-鉴权时用的是**区分大小写**的前缀匹配：
+鉴权用的是**区分大小写**的前缀匹配：
 
 ```go
 // registry/internal/auth/jwt.go
@@ -50,51 +77,99 @@ func isResourceMatch(resource, pattern string) bool {
 }
 ```
 
-所以 `server.json` 的 `name` 与 `package.json` 的 `mcpName` 都必须是 `io.github.SSShooter/mind-elixir-mcp`，**不能小写**。写成小写会得到 `You do not have permission to publish this server`。
+发布前先确认自己的角色：
 
-### 1.2 发布步骤
+```bash
+gh api orgs/mind-elixir/memberships/SSShooter --jq '{role,state}'
+# 期望：{"role":"admin","state":"active"}    ← admin 即 Owner
+```
+
+### 1.3 device flow 会自动申请 `read:org`，但组织侧可能还要批准
+
+`mcp-publisher login github` 的 device flow 请求的 scope 是写死的：
+
+```go
+// registry/cmd/publisher/auth/github-at.go
+"scope": "read:org read:user",
+```
+
+所以走 device flow 不用手动配 scope。两个要注意的点：
+
+- 如果组织开启了 **OAuth App access restrictions**，需要组织 Owner 先批准 `mcp-publisher` 这个 OAuth 应用，否则 GitHub 不会返回该组织 membership，结果是「只拿到个人命名空间」，发布时报权限错误。
+- 改用 PAT 登录（CI 场景）：Classic PAT 需要 `read:org`，Fine-grained PAT 需要 **Organization permissions → Members → Read-only**。缺了会**静默降级**为只能用个人命名空间。
+
+### 1.4 CI 免凭据方案：GitHub Actions OIDC
+
+`mcp-publisher login github-oidc` 走 `id-token: write`，服务端从 OIDC token 的 `repository_owner` 推导命名空间：
+
+```go
+// registry/internal/api/handlers/v0/auth/github_oidc.go
+// Grant publish permissions for the repository owner's namespace
+// We grant io.github.<owner>/* rather than io.github./repo/*
+ResourcePattern: fmt.Sprintf("io.github.%s/*", claims.RepositoryOwner)
+```
+
+仓库属于 `mind-elixir` 组织，因此 `repository_owner` = `mind-elixir`，**自动拿到 `io.github.mind-elixir/*`**，不需要任何长期凭据。后续要做自动发布时这是最干净的一条路。
+
+---
+
+## 2. 官方 MCP Registry 发布
+
+地址：<https://registry.modelcontextprotocol.io>　规范：`https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json`
+
+官方 Registry 只托管**元数据**，不托管产物；产物仍在 npm。它是生态的元数据源头，Glama、PulseMCP、mcp.so、LobeHub 等聚合站大多从这里或从 GitHub 仓库拉取。
+
+### 2.1 一次性准备
+
+```bash
+brew install mcp-publisher                 # 或从 GitHub Releases 下载二进制
+mcp-publisher --help
+```
+
+### 2.2 发布
 
 ```bash
 # 1) 构建并确认产物
-cd packages/mcp
 pnpm install
 pnpm build
 
-# 2) 发布到 npm（必须先于 Registry，Registry 会去 npm 校验这个版本存在且带 mcpName）
+# 2) 发布到 npm —— 必须先于 Registry：
+#    Registry 会去 npm 校验「这个版本存在」且「该版本的 mcpName 等于 server.json 的 name」
 npm publish --access public
-npm view @mind-elixir/mcp dist-tags      # 确认 latest 指向 0.1.5
+npm view @mind-elixir/mcp dist-tags         # 确认 latest 指向 0.1.5
 
-# 3) 安装发布工具
-brew install mcp-publisher               # 或从 GitHub Releases 下载二进制
+# 3) 登录（device flow，浏览器里确认；注意批准组织访问）
+mcp-publisher login github
 
-# 4) 先本地校验，再登录发布
-cd packages/mcp
+# 4) 先本地校验，再发布
 mcp-publisher validate
-mcp-publisher login github               # 走 GitHub device flow
 mcp-publisher publish
 
 # 5) 验证
-curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.SSShooter/mind-elixir-mcp"
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.mind-elixir/mcp"
 ```
+
+> `publish` 从 `login` 保存的 token 里读取 registry 地址，**不接受 `--registry` 参数**——传了会被当成 `server.json` 的路径解析。
 
 期望输出：
 
 ```text
 ✓ Successfully published
-✓ Server io.github.SSShooter/mind-elixir-mcp version 0.1.5
+✓ Server io.github.mind-elixir/mcp version 0.1.5
 ```
 
-### 1.3 常见报错对照
+### 2.3 常见报错对照
 
 | 报错 | 处理 |
 | --- | --- |
 | `Registry validation failed for package` | npm 上那个版本没有 `mcpName`，或值与 `server.json` 的 `name` 不一致。 |
-| `You do not have permission to publish this server` | 命名空间不匹配。检查大小写是否为 `io.github.SSShooter`。 |
+| `You do not have permission to publish this server` | 命名空间不匹配。确认 `io.github.mind-elixir/mcp` 拼写；若登录账号不是组织 Owner，或 device flow 时没批准组织访问，也会落到这里。 |
 | `Invalid or expired Registry JWT token` | token 过期，重新执行 `mcp-publisher login github`。 |
+| 只能发个人命名空间、组织被忽略 | 组织开了 OAuth App access restrictions 未批准，或 PAT 缺 `read:org` / Members 读取权限。 |
 
 ---
 
-## 2. 聚合站
+## 3. 聚合站
 
 | 平台 | 收录方式 | 本项目需要做什么 |
 | --- | --- | --- |
@@ -108,7 +183,7 @@ curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.SSS
 
 Glama 每天从 GitHub 仓库同步，`main` 上推了新内容就会更新。认领（Claim）后可解锁分析、缩略图与健康检查。认领需证明控制权，三选一：
 
-- **GitHub identity**：登录与命名空间匹配的 GitHub 账号（对 `io.github.SSShooter/*` 最省事）。
+- **GitHub identity**：登录与命名空间匹配的 GitHub 账号（对 `io.github.mind-elixir/*` 即组织 Owner 账号）。
 - **HTTP challenge**：在服务同源放 `/.well-known/glama.json`。
 - **DNS challenge**：加一条 TXT 记录。
 
@@ -125,46 +200,41 @@ Smithery 的发布路径只有两条：
 
 ---
 
-## 3. 待决策的前置阻塞项
+## 4. 图标
 
-### 3.1 仓库是私有的
-
-`server.json` 里写了 `repository` 指向 `https://github.com/SSShooter/mind-elixir-desktop`，但该仓库目前返回 404（私有）。影响：
-
-- 官方 Registry **不校验**仓库可见性，发布不受阻。
-- 但 Glama 的「Repository / GitHub Stars」、LobeHub 的 `homepage` 链接、以及用户的源码审阅入口**全部会失效**——而透明可审阅恰恰是 MCP 商店收录时看重的点。
-
-选项：① 把仓库设为公开；② 保持私有，接受聚合站上的仓库链接离线（前提是 Registry 的 `repository` 字段可以保留，它本身是可选字段）。
-
-### 3.2 图标还没上
-
-`server.json` 的 `icons` 是可选字段，本次**未声明**，因为应用图标 `app-icon.png`（1024×1024 PNG）躺在私有仓库里，`raw.githubusercontent.com` 取不到（实测 404），而 schema 要求 `icons[].src` 必须是 HTTPS URL。
-
-要加上图标，先把 PNG 放到一个公开 HTTPS 地址（例如 `app.mind-elixir.com` 的静态资源），再补：
+`server.json` 的 `icons[].src` 必须是公网 HTTPS 地址，因此图标放在本仓库并走 `raw.githubusercontent.com`：
 
 ```json
-"icons": [{ "src": "https://app.mind-elixir.com/icon-512.png", "mimeType": "image/png", "sizes": ["512x512"] }]
+"icons": [
+  {
+    "src": "https://raw.githubusercontent.com/mind-elixir/mcp/main/app-icon.png",
+    "mimeType": "image/png",
+    "sizes": ["1024x1024"]
+  }
+]
 ```
+
+替换图标时保持文件名与路径不变即可，无需改 `server.json`。
 
 ---
 
-## 4. 发新版本时的 checklist
+## 5. 发版 checklist
 
-版本号需要在 **4 个地方**同步修改，漏一处就会导致校验失败或版本信息取自相矛盾：
+版本号需要在 **4 个地方**同步修改，漏一处就会导致校验失败或版本信息自相矛盾：
 
 ```bash
 # 1) 包元数据
-packages/mcp/package.json          → "version": "0.1.6"
+package.json                 → "version": "0.1.6"
 
 # 2) CLI 版本号（硬编码，容易漏）
-packages/mcp/src/index.ts          → const VERSION = '0.1.6'
+src/index.ts                 → const VERSION = '0.1.6'
 
 # 3) Registry 清单，两处都要改
-packages/mcp/server.json           → "version": "0.1.6"
-packages/mcp/server.json           → "packages"[0].version: "0.1.6"
+server.json                  → "version": "0.1.6"
+server.json                  → "packages"[0].version: "0.1.6"
 
-# 4) 校验
-cd packages/mcp && pnpm build && mcp-publisher validate && npm publish --access public && mcp-publisher publish
+# 4) 构建 + 校验 + 发布
+pnpm build && mcp-publisher validate && npm publish --access public && mcp-publisher publish
 ```
 
 另外记得补 `CHANGELOG.md`。
@@ -183,14 +253,14 @@ Registry 只会保留这个键下的内容，其余键会被静默丢弃。`cate
 
 ---
 
-## 5. 提交前自检脚本
+## 6. 提交前自检
 
 官方 schema 的权威校验（会走网络下载 schema 与 ajv）：
 
 ```bash
 cd /tmp && curl -sO https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json
-cd /Users/darksouls/projects/mind-elixir-desktop/packages/mcp
-npx --yes ajv-cli@5 validate -s /tmp/mcp-server.schema.json -d server.json --spec=draft7 --strict=false
+cd -                                    # 回到本仓库根目录
+npx --yes ajv-cli@5 validate -s /tmp/server.schema.json -d server.json --spec=draft7 --strict=false
 # 期望：server.json valid
 ```
 
@@ -199,7 +269,7 @@ npx --yes ajv-cli@5 validate -s /tmp/mcp-server.schema.json -d server.json --spe
 字段一致性自检（无需联网）：
 
 ```bash
-cd packages/mcp && python3 - <<'PY'
+python3 - <<'PY'
 import json, re, sys
 
 pkg = json.load(open('package.json'))
@@ -208,24 +278,26 @@ ok = True
 
 def check(cond, msg):
     global ok
-    print(('  ✓ ' if cond else '  ✗ ') + msg)
+    print(('  OK  ' if cond else '  FAIL') + ' ' + msg)
     ok = ok and cond
 
 print('package.json')
 check(bool(pkg.get('mcpName')), 'mcpName 存在')
-check('repository' in pkg and 'homepage' in pkg, 'repository / homepage 存在')
+check(pkg.get('mcpName') == srv['name'], 'mcpName == server.json name')
+check('mind-elixir/mcp' in pkg.get('repository', {}).get('url', ''), 'repository 指向 mind-elixir/mcp')
 
 print('server.json')
 check(re.fullmatch(r'[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+', srv['name']) is not None, 'name 符合 schema 正则')
-check(srv['name'] == pkg['mcpName'], 'server.json name == package.json mcpName（含大小写）')
-check(len(srv['description']) <= 100, f"description 长度 {len(srv['description'])} <= 100")
-check(srv['version'] == pkg['version'], f"顶层 version 与 package.json 一致（{pkg['version']}）")
+check(len(srv['description']) <= 100, 'description 长度 %d <= 100' % len(srv['description']))
+check(srv['version'] == pkg['version'], '顶层 version 与 package.json 一致（%s）' % pkg['version'])
 check(srv['packages'][0]['version'] == pkg['version'], 'packages[0].version 与 package.json 一致')
+check(srv['packages'][0]['identifier'] == pkg['name'], 'identifier 与 package.json name 一致')
 check(srv['packages'][0]['registryType'] == 'npm', 'registryType = npm')
 check(srv['packages'][0]['registryBaseUrl'] == 'https://registry.npmjs.org', 'registryBaseUrl 为官方 npm')
 check(srv['packages'][0]['transport']['type'] == 'stdio', 'transport = stdio')
+check('subfolder' not in srv.get('repository', {}), 'repository 不含 subfolder（已独立成仓）')
 meta = json.dumps(srv['_meta'])
-check(len(meta) <= 4096, f"_meta 体积 {len(meta)} <= 4096")
+check(len(meta) <= 4096, '_meta 体积 %d <= 4096' % len(meta))
 
 print()
 print('全部通过' if ok else '存在未通过项')

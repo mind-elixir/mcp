@@ -1,15 +1,21 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.SSShooter/mind-elixir-mcp",
+  "name": "io.github.mind-elixir/mcp",
   "title": "Mind Elixir",
   "description": "Create, edit, and organize mind maps in the Mind Elixir Desktop app from any MCP client.",
   "version": "0.1.5",
   "websiteUrl": "https://app.mind-elixir.com",
   "repository": {
-    "url": "https://github.com/SSShooter/mind-elixir-desktop",
-    "source": "github",
-    "subfolder": "packages/mcp"
+    "url": "https://github.com/mind-elixir/mcp",
+    "source": "github"
   },
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/mind-elixir/mcp/main/app-icon.png",
+      "mimeType": "image/png",
+      "sizes": ["1024x1024"]
+    }
+  ],
   "packages": [
     {
       "registryType": "npm",
@@ -51,12 +57,11 @@
       ],
       "longDescription": "A local bridge to the MCP server built into Mind Elixir Desktop. It exposes seven tools that let an AI assistant create a mind map from scratch, read the map that is currently open, rename and add nodes, attach summary nodes over a range of siblings, and draw labelled arrows between nodes. All processing stays on the user's machine: the desktop app hosts the endpoint on 127.0.0.1:6595 and the bridge only forwards JSON-RPC over loopback.",
       "docs": "https://app.mind-elixir.com/blog/use-mcp",
-      "contact": "https://github.com/SSShooter",
+      "contact": "https://github.com/mind-elixir",
       "requiresDesktopApp": true,
       "desktopAppUrl": "https://app.mind-elixir.com",
       "io.mind-elixir": {
         "defaultEndpoint": "http://127.0.0.1:6595/mcp",
-        "repositorySubfolder": "packages/mcp",
         "tools": [
           {
             "name": "new_mindmap",

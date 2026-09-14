@@ -1,7 +1,7 @@
 # Mind Elixir MCP Server
 
 [![npm version](https://img.shields.io/npm/v/@mind-elixir/mcp.svg)](https://www.npmjs.com/package/@mind-elixir/mcp)
-[![license](https://img.shields.io/npm/l/@mind-elixir/mcp.svg)](https://github.com/SSShooter/mind-elixir-desktop/blob/master/LICENSE)
+[![license](https://img.shields.io/npm/l/@mind-elixir/mcp.svg)](https://github.com/mind-elixir/mcp/blob/main/LICENSE)
 
 **让 AI 助手直接在 [Mind Elixir Desktop](https://app.mind-elixir.com) 里创建和编辑真正的思维导图。**
 
@@ -9,7 +9,7 @@
 
 > **使用前必须安装并启动 Mind Elixir Desktop。** 这不是一个可以独立运行的云端服务，而是桌面应用的本地控制器：桥接进程把工具调用转发到 `http://127.0.0.1:6595/mcp`，再把结果原样回传。
 
-- Registry 名称：`io.github.SSShooter/mind-elixir-mcp`
+- Registry 名称：`io.github.mind-elixir/mcp`
 - npm 包：[`@mind-elixir/mcp`](https://www.npmjs.com/package/@mind-elixir/mcp)
 - 配置教程：<https://app.mind-elixir.com/blog/use-mcp>
 
@@ -398,8 +398,9 @@ ENVIRONMENT VARIABLES:
 
 ## 本地开发
 
+需要 Node.js 18+ 与 pnpm 11+（`pnpm-workspace.yaml` 里的 `allowBuilds` 依赖 pnpm 11）。
+
 ```bash
-cd packages/mcp
 pnpm install
 pnpm build     # tsup -> dist/index.js
 pnpm dev       # tsup --watch
@@ -411,4 +412,4 @@ pnpm dev       # tsup --watch
 
 ## 许可证
 
-MIT © [SSShooter](https://github.com/SSShooter)
+MIT © [Mind Elixir](https://github.com/mind-elixir)
