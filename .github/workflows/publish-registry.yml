@@ -1,0 +1,38 @@
+name: Publish to MCP Registry
+
+# Registry 权限由 OIDC token 的 repository_owner 推导（= mind-elixir），
+# 不依赖组织成员公开性或 OAuth App 批准。
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC：换取 Registry 的发布凭据（必需）
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" -o publisher.tar.gz
+          tar xzf publisher.tar.gz mcp-publisher
+
+      - name: Login via OIDC and publish
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
