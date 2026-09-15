@@ -39,31 +39,123 @@
   "tools": [
     {
       "name": "new_mindmap",
-      "description": "Create a new blank mind map and navigate the app to the editor."
+      "description": "Create a new blank mind map and navigate the app to the editor.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
     },
     {
       "name": "get_all_nodes",
-      "description": "Return the full node tree (topics, IDs, hierarchy) of the current mind map."
+      "description": "Return the full node tree (topics, IDs, hierarchy) of the current mind map.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
     },
     {
       "name": "generate_mindmap",
-      "description": "Replace the current mind map with one built from a JSON structure."
+      "description": "Replace the current mind map with one built from a JSON structure.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mindmapData": {
+            "type": "string",
+            "description": "JSON string containing the mindmap structure: {\"nodeData\":{\"topic\":\"Root Topic\",\"id\":\"1\",\"children\":[{\"topic\":\"Child Topic 1\",\"id\":\"1-1\",\"children\":[]}]}}. Use incrementing numeric IDs (1, 1-1, 1-2, 2, 2-1); each node must have 'topic' and 'id'; 'children' array is optional."
+          }
+        },
+        "required": ["mindmapData"]
+      }
     },
     {
       "name": "edit_topic",
-      "description": "Change the topic text of an existing node, keeping its position and links."
+      "description": "Change the topic text of an existing node, keeping its position and links.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "nodeId": {
+            "type": "string",
+            "description": "The unique identifier of the node to edit (e.g., '1', '1-1', '2-3')"
+          },
+          "topic": {
+            "type": "string",
+            "description": "The new topic text to replace the current topic"
+          }
+        },
+        "required": ["nodeId", "topic"]
+      }
     },
     {
       "name": "add_child",
-      "description": "Add a child node under an existing parent; returns the generated node ID."
+      "description": "Add a child node under an existing parent; returns the generated node ID.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": "string",
+            "description": "The unique identifier of the parent node where the new child will be added (e.g., '1', '1-1', '2')"
+          },
+          "topic": {
+            "type": "string",
+            "description": "The topic text for the new child node"
+          }
+        },
+        "required": ["parentId", "topic"]
+      }
     },
     {
       "name": "add_node_summary",
-      "description": "Attach a summary node that consolidates a range of sibling child nodes."
+      "description": "Attach a summary node that consolidates a range of sibling child nodes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Concise summary text capturing the key themes of the selected child nodes"
+          },
+          "parent": {
+            "type": "string",
+            "description": "The unique identifier of the parent node whose children will be summarized (e.g., '1', '2-1')"
+          },
+          "start": {
+            "type": "integer",
+            "description": "Zero-based index of the first child node to include in the summary"
+          },
+          "end": {
+            "type": "integer",
+            "description": "Zero-based index of the last child node to include (inclusive)"
+          }
+        },
+        "required": ["text", "parent", "start", "end"]
+      }
     },
     {
       "name": "add_arrow",
-      "description": "Draw a labelled connection arrow between two nodes to show a relationship."
+      "description": "Draw a labelled connection arrow between two nodes to show a relationship.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Descriptive label for the relationship (e.g., 'leads to', 'depends on', 'relates to')"
+          },
+          "from": {
+            "type": "string",
+            "description": "The unique identifier of the source/starting node (e.g., '1-2', '3')"
+          },
+          "to": {
+            "type": "string",
+            "description": "The unique identifier of the target/ending node (e.g., '2-1', '4')"
+          },
+          "bidirectional": {
+            "type": "boolean",
+            "description": "true for bidirectional arrows (\u2194), false for unidirectional arrows (\u2192)"
+          }
+        },
+        "required": ["label", "from", "to", "bidirectional"]
+      }
     }
   ],
   "keywords": ["mindmap", "mind-map", "mind-elixir", "diagram", "notes", "desktop"],

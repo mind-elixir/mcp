@@ -10,7 +10,7 @@
  * Prereq: pnpm build (dist/index.js must exist) and Node >= 18
  */
 import { execSync } from 'node:child_process'
-import { cpSync, mkdirSync, readFileSync, existsSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, readFileSync, existsSync, writeFileSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -35,12 +35,15 @@ writeFileSync(join(stage, 'manifest.json'), JSON.stringify(manifest, null, 2) + 
 cpSync(dist, join(stage, 'dist', 'index.js'))
 cpSync(join(root, 'app-icon.png'), join(stage, 'icon.png'))
 
-// Pack
+// Pack.
+// Smithery's stdio-release validation requires tools[].inputSchema, but the
+// strict @anthropic-ai/mcpb packer rejects that key ("Unrecognized key(s)").
+// The MCPB format itself is just a zip with manifest.json at the root, so we
+// zip the staged directory directly. (@anthropic-ai/mcpb validate will flag
+// the extra key — expected, see PUBLISHING.md.)
 const outFile = join(root, 'mind-elixir-mcp.mcpb')
-execSync(`npx -y @anthropic-ai/mcpb pack "${stage}" "${outFile}"`, {
-  cwd: root,
-  stdio: 'inherit',
-})
+rmSync(outFile, { force: true })
+execSync(`zip -qr "${outFile}" .`, { cwd: stage, stdio: 'inherit' })
 
 console.log(`\nPacked: ${outFile}`)
 console.log('Submit at https://smithery.ai/new (Local tab), or:')

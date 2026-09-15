@@ -192,33 +192,32 @@ Glama 每天从 GitHub 仓库同步，`main` 上推了新内容就会更新。�
 
 注意：与官方 Registry 关联的条目，默认会被 Registry 的 name / description / URL 覆盖；若要保留 Glama 上的自定义内容，认领后在 **Manage connector** 里打开 “Use Glama listing details as the source of truth”。
 
-### Smithery：走 MCPB 本地包（2026 实测路径）
+### Smithery：MCPB 本地包（2026-09-15 实测已发布 `ssshooterx/mcp`）
 
-Smithery 只收两种：① 公网 HTTPS 的 Streamable HTTP 端点（本服务固定绑 `127.0.0.1:6595`，**不可行**）；② **MCPB 本地包**（`.mcpb` = zip 清单 + 服务器代码，Claude Desktop 可双击安装）。Docker/`smithery.yaml` 是旧路径，已废弃——容器化反而会隔离掉 `127.0.0.1`。
+Smithery 只收两种：① 公网 HTTPS 的 Streamable HTTP 端点（本服务固定绑 `127.0.0.1:6595`，**不可行**）；② **MCPB 本地包**（`.mcpb` = zip 清单 + 服务器代码）。`smithery.yaml`/Docker 是废弃路径——容器化反而会隔离掉 `127.0.0.1`。
 
-发布步骤：
+实测流程与三个坑：
 
 ```bash
-# 0) 构建单文件产物
+# 0) 构建 + 打包
 pnpm build
+pnpm pack:mcpb                     # 产物 mind-elixir-mcp.mcpb
 
-# 1) 打 MCPB 包（版本号自动同步自 package.json，产物：mind-elixir-mcp.mcpb）
-pnpm pack:mcpb
-#    内部执行：npx @anthropic-ai/mcpb pack → .mcpb-stage → mind-elixir-mcp.mcpb
-#    清单模板在 mcpb/manifest.json（工具列表、user_config 端点配置、图标）
+# 1) 登录（浏览器授权）
+npx -y @smithery/cli auth login
+npx -y @smithery/cli auth whoami   # 确认命名空间（本账号是 ssshooterx，非 ssshooter）
 
-# 2) 提交 —— 网页或 CLI 二选一
-#    网页：https://smithery.ai/new → 选 "Local" 标签 → 上传 mind-elixir-mcp.mcpb
-#    CLI：
-npx -y @smithery/cli mcp publish ./mind-elixir-mcp.mcpb -n mind-elixir/mcp
+# 2) 发布
+npx -y @smithery/cli mcp publish ./mind-elixir-mcp.mcpb -n <namespace>/mcp
 ```
 
-要点：
+| 坑 | 说明 |
+| --- | --- |
+| `tools[].inputSchema` **必填** | Smithery 的 stdio 发布校验要求每个 tool 带完整 `inputSchema` 对象（缺了报 N 次 `expected object, received undefined`，N = 工具数）。已按 `src-tauri/src/mcp/common/mindmap.rs` 的 schemars 定义补齐。 |
+| `@anthropic-ai/mcpb pack` 拒绝 `inputSchema` | 官方 packer 是严格校验，报 `Unrecognized key(s)`。MCPB 本质就是 zip（根目录 manifest.json），脚本改为直接 `zip` 打包绕过。**副作用**：`mcpb validate` 会报 unrecognized key，属预期；Claude Desktop 实测可装但未长期验证。 |
+| 命名空间要先用 `whoami` 确认 | `-n mind-elixir/mcp` 报 `Namespace not found`（Smithery 命名空间 ≠ GitHub org 自动同步），`-n ssshooter/mcp` 报 Forbidden。当前账号命名空间是 **`ssshooterx`**。若要组织命名空间，需在 Smithery 后台创建 `mind-elixir` 命名空间后用 Transfer API 迁移。 |
 
-- 包内 `dist/index.js` 是 `noExternal` 单文件，**无需带 node_modules**（用户侧需要 Node ≥ 18）。
-- `user_config.endpoint` 会渲染成 Smithery/Claude 的安装配置框，默认 `http://127.0.0.1:6595/mcp`。
-- 发布后在服务器页 **Settings → Verification** 走官方认证流程。
-- 发新版本时 `mcpb/manifest.json` 的 `version` 会被脚本自动覆盖，无需手改；工具列表有变才需要改它。
+发布后验证：<https://smithery.ai/servers/ssshooterx/mcp>（页面 200，registry API 返回 stdio bundle 信息）。发新版本 = 重新执行上面三步（`inputSchema` 模板在 `mcpb/manifest.json`，工具变更时需同步修改）。
 
 ---
 
