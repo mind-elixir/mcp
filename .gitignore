@@ -8,3 +8,5 @@ dist/
 *.log
 npm-debug.log*
 .DS_Store
+*.mcpb
+.mcpb-stage/

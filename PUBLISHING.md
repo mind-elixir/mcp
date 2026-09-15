@@ -192,14 +192,33 @@ Glama 每天从 GitHub 仓库同步，`main` 上推了新内容就会更新。�
 
 注意：与官方 Registry 关联的条目，默认会被 Registry 的 name / description / URL 覆盖；若要保留 Glama 上的自定义内容，认领后在 **Manage connector** 里打开 “Use Glama listing details as the source of truth”。
 
-### Smithery 为什么暂时不适合
+### Smithery：走 MCPB 本地包（2026 实测路径）
 
-Smithery 的发布路径只有两条：
+Smithery 只收两种：① 公网 HTTPS 的 Streamable HTTP 端点（本服务固定绑 `127.0.0.1:6595`，**不可行**）；② **MCPB 本地包**（`.mcpb` = zip 清单 + 服务器代码，Claude Desktop 可双击安装）。Docker/`smithery.yaml` 是旧路径，已废弃——容器化反而会隔离掉 `127.0.0.1`。
 
-1. **URL 托管**：需要一个**公网 HTTPS** 且实现 Streamable HTTP 的端点。本服务固定绑定 `127.0.0.1:6595`，且必须由用户本机的桌面应用提供服务，**无法托管到云上**。
-2. **本地 stdio（`.mcpb` bundle）**：客户端下载后在本机运行的 MCP Bundle。这条路理论上可行——`tsup` 配置了 `noExternal: [/.*/]`，`dist/index.js` 已经是单文件打包产物，适合塞进 `server.type: "node"` 的 MCPB。
+发布步骤：
 
-> 若后续要做 Smithery，正确的做法是构建 `.mcpb`（`manifest.json` + `dist/index.js`），而不是 `smithery.yaml` 或 Dockerfile——容器化会把 `127.0.0.1` 隔离掉，反而连不上宿主机的桌面应用。
+```bash
+# 0) 构建单文件产物
+pnpm build
+
+# 1) 打 MCPB 包（版本号自动同步自 package.json，产物：mind-elixir-mcp.mcpb）
+pnpm pack:mcpb
+#    内部执行：npx @anthropic-ai/mcpb pack → .mcpb-stage → mind-elixir-mcp.mcpb
+#    清单模板在 mcpb/manifest.json（工具列表、user_config 端点配置、图标）
+
+# 2) 提交 —— 网页或 CLI 二选一
+#    网页：https://smithery.ai/new → 选 "Local" 标签 → 上传 mind-elixir-mcp.mcpb
+#    CLI：
+npx -y @smithery/cli mcp publish ./mind-elixir-mcp.mcpb -n mind-elixir/mcp
+```
+
+要点：
+
+- 包内 `dist/index.js` 是 `noExternal` 单文件，**无需带 node_modules**（用户侧需要 Node ≥ 18）。
+- `user_config.endpoint` 会渲染成 Smithery/Claude 的安装配置框，默认 `http://127.0.0.1:6595/mcp`。
+- 发布后在服务器页 **Settings → Verification** 走官方认证流程。
+- 发新版本时 `mcpb/manifest.json` 的 `version` 会被脚本自动覆盖，无需手改；工具列表有变才需要改它。
 
 ---
 

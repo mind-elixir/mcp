@@ -1,0 +1,78 @@
+{
+  "manifest_version": "0.3",
+  "name": "mind-elixir-mcp",
+  "display_name": "Mind Elixir",
+  "version": "0.1.5",
+  "description": "Create, edit, and organize mind maps in the Mind Elixir Desktop app from any MCP client. Bridges stdio MCP clients (Claude Desktop, Cursor, etc.) to the desktop app's local MCP server.",
+  "long_description": "Mind Elixir MCP lets any MCP client create and edit mind maps inside Mind Elixir Desktop. The bundle contains the stdio-to-HTTP bridge; the actual tools run inside the desktop app (must be installed and running, listening on http://127.0.0.1:6595/mcp). Available tools: new_mindmap, get_all_nodes, generate_mindmap, edit_topic, add_child, add_node_summary, add_arrow.",
+  "author": {
+    "name": "Mind Elixir",
+    "url": "https://github.com/mind-elixir"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mind-elixir/mcp"
+  },
+  "homepage": "https://app.mind-elixir.com",
+  "documentation": "https://github.com/mind-elixir/mcp#readme",
+  "support": "https://github.com/mind-elixir/mcp/issues",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"],
+      "env": {
+        "MIND_ELIXIR_MCP_URL": "${user_config.endpoint}"
+      }
+    }
+  },
+  "user_config": {
+    "endpoint": {
+      "type": "string",
+      "title": "Mind Elixir MCP URL",
+      "description": "URL of the MCP server inside Mind Elixir Desktop. The desktop app must be running. Default works for a standard local install.",
+      "required": false,
+      "default": "http://127.0.0.1:6595/mcp"
+    }
+  },
+  "tools": [
+    {
+      "name": "new_mindmap",
+      "description": "Create a new blank mind map and navigate the app to the editor."
+    },
+    {
+      "name": "get_all_nodes",
+      "description": "Return the full node tree (topics, IDs, hierarchy) of the current mind map."
+    },
+    {
+      "name": "generate_mindmap",
+      "description": "Replace the current mind map with one built from a JSON structure."
+    },
+    {
+      "name": "edit_topic",
+      "description": "Change the topic text of an existing node, keeping its position and links."
+    },
+    {
+      "name": "add_child",
+      "description": "Add a child node under an existing parent; returns the generated node ID."
+    },
+    {
+      "name": "add_node_summary",
+      "description": "Attach a summary node that consolidates a range of sibling child nodes."
+    },
+    {
+      "name": "add_arrow",
+      "description": "Draw a labelled connection arrow between two nodes to show a relationship."
+    }
+  ],
+  "keywords": ["mindmap", "mind-map", "mind-elixir", "diagram", "notes", "desktop"],
+  "license": "MIT",
+  "icon": "icon.png",
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "node": ">=18"
+    }
+  }
+}
