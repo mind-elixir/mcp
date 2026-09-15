@@ -219,6 +219,21 @@ npx -y @smithery/cli mcp publish ./mind-elixir-mcp.mcpb -n <namespace>/mcp
 
 发布后验证：<https://smithery.ai/servers/ssshooterx/mcp>（页面 200，registry API 返回 stdio bundle 信息）。发新版本 = 重新执行上面三步（`inputSchema` 模板在 `mcpb/manifest.json`，工具变更时需同步修改）。
 
+### 必做：CLI 发布不带 listing 元数据，需到后台补填
+
+`mcp publish` 对 stdio 包只上传连接信息 + 工具列表，**不读 manifest 里的 `description`/`display_name`/`icon`**——registry API 会显示 `"description":"", "displayName":"mcp", "iconUrl":null`（文档发布流程的第 3 步 "Complete the publishing flow" 指的就是网页上这一步，纯 CLI 发布会跳过它）。
+
+补填入口：<https://smithery.ai/servers/ssshooterx/mcp/settings>，表单字段与建议值：
+
+| 字段 | 建议值 |
+| --- | --- |
+| Display Name | `Mind Elixir MCP` |
+| Description | `Create, edit, and organize mind maps in the Mind Elixir Desktop app from any MCP client. Bridges stdio clients (Claude Desktop, Cursor, Cline...) to the desktop app's MCP server on 127.0.0.1:6595.` |
+| Homepage | `https://app.mind-elixir.com` |
+| Server Icon | 上传仓库根目录的 `app-icon.png` |
+
+填完可再用 registry API 复查：`curl https://registry.smithery.ai/servers/ssshooterx/mcp`，`description`/`iconUrl` 应不再为空。
+
 ---
 
 ## 4. 图标
